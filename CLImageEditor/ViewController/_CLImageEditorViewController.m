@@ -91,6 +91,7 @@
         UINavigationBar *navigationBar = [[UINavigationBar alloc] initWithFrame:CGRectMake(0, dy, self.view.width, 44)];
         [navigationBar pushNavigationItem:navigationItem animated:NO];
         navigationBar.delegate = self;
+        navigationBar.translucent = self.theme.navBarTranslucent;
         
         if(self.navigationController){
             [self.navigationController.view addSubview:navigationBar];
