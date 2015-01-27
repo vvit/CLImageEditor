@@ -11,6 +11,8 @@
 
 static NSString* const kCLStickerToolStickerPathKey = @"stickerPath";
 static NSString* const kCLStickerToolDeleteIconName = @"deleteIconAssetsName";
+static NSString* const kCLStickerToolStickerWidthKey = @"stickerWidth";
+static NSString* const kCLStickerToolStickerImageSize = @"stickerImageSize";
 
 @interface _CLStickerView : UIView
 + (void)setActiveStickerView:(_CLStickerView*)view;
@@ -62,6 +64,8 @@ static NSString* const kCLStickerToolDeleteIconName = @"deleteIconAssetsName";
     return @{
              kCLStickerToolStickerPathKey:[self defaultStickerPath],
              kCLStickerToolDeleteIconName:@"",
+             kCLStickerToolStickerWidthKey: @70,
+             kCLStickerToolStickerImageSize: @50
              };
 }
 
@@ -123,9 +127,9 @@ static NSString* const kCLStickerToolDeleteIconName = @"deleteIconAssetsName";
 
 - (void)setStickerMenu
 {
-    CGFloat W = 70;
+    CGFloat W = [self.toolInfo.optionalInfo[kCLStickerToolStickerWidthKey] floatValue];
     CGFloat H = _menuScroll.height;
-    CGFloat x = 0;
+    CGFloat x = 0, imageSize = [self.toolInfo.optionalInfo[kCLStickerToolStickerImageSize] floatValue];
     
     NSString *stickerPath = self.toolInfo.optionalInfo[kCLStickerToolStickerPathKey];
     if(stickerPath==nil){ stickerPath = [[self class] defaultStickerPath]; }
@@ -140,7 +144,7 @@ static NSString* const kCLStickerToolDeleteIconName = @"deleteIconAssetsName";
         UIImage *image = [UIImage imageWithContentsOfFile:filePath];
         if(image){
             CLToolbarMenuItem *view = [CLImageEditorTheme menuItemWithFrame:CGRectMake(x, 0, W, H) target:self action:@selector(tappedStickerPanel:) toolInfo:nil];
-            view.iconImage = [image aspectFit:CGSizeMake(50, 50)];
+            view.iconImage = [image aspectFit:CGSizeMake(imageSize, imageSize)];
             view.userInfo = @{@"filePath" : filePath};
             
             [_menuScroll addSubview:view];
