@@ -10,6 +10,7 @@
 static NSString* const kCLRotateToolRotateIconName = @"rotateIconAssetsName";
 static NSString* const kCLRotateToolFlipHorizontalIconName = @"flipHorizontalIconAssetsName";
 static NSString* const kCLRotateToolFlipVerticalIconName = @"flipVerticalIconAssetsName";
+static NSString* const kCLRotateToolHideFlipName = @"flipHide";
 
 
 @interface CLRotatePanel : UIView
@@ -55,7 +56,8 @@ static NSString* const kCLRotateToolFlipVerticalIconName = @"flipVerticalIconAss
     return @{
              kCLRotateToolRotateIconName : @"",
              kCLRotateToolFlipHorizontalIconName : @"",
-             kCLRotateToolFlipVerticalIconName : @""
+             kCLRotateToolFlipVerticalIconName : @"",
+             kCLRotateToolHideFlipName: @NO
              };
 }
 
@@ -156,11 +158,10 @@ static NSString* const kCLRotateToolFlipVerticalIconName = @"flipVerticalIconAss
     CGFloat H = _menuScroll.height;
     CGFloat x = 0;
 	
-    NSArray *_menu = @[
-                       @{@"title":[CLImageEditorTheme localizedString:@"CLRotateTool_MenuItemRotateTitle" withDefault:@" "], @"icon":[self imageForKey:kCLRotateToolRotateIconName defaultImageName:@"btn_rotate.png"]},
-                       @{@"title":[CLImageEditorTheme localizedString:@"CLRotateTool_MenuItemFlipTitle1" withDefault:@" "], @"icon":[self imageForKey:kCLRotateToolFlipHorizontalIconName defaultImageName:@"btn_flip1.png"]},
-                       @{@"title":[CLImageEditorTheme localizedString:@"CLRotateTool_MenuItemFlipTitle2" withDefault:@" "], @"icon":[self imageForKey:kCLRotateToolFlipVerticalIconName defaultImageName:@"btn_flip2.png"]},
-                       ];
+    NSMutableArray *_menu = [NSMutableArray arrayWithObject:@{@"title":[CLImageEditorTheme localizedString:@"CLRotateTool_MenuItemRotateTitle" withDefault:@" "], @"icon":[self imageForKey:kCLRotateToolRotateIconName defaultImageName:@"btn_rotate.png"]}];
+    if (![self.toolInfo.optionalInfo[kCLRotateToolHideFlipName] boolValue])
+        [_menu addObjectsFromArray:@[@{@"title":[CLImageEditorTheme localizedString:@"CLRotateTool_MenuItemFlipTitle1" withDefault:@" "], @"icon":[self imageForKey:kCLRotateToolFlipHorizontalIconName defaultImageName:@"btn_flip1.png"]},
+                                     @{@"title":[CLImageEditorTheme localizedString:@"CLRotateTool_MenuItemFlipTitle2" withDefault:@" "], @"icon":[self imageForKey:kCLRotateToolFlipVerticalIconName defaultImageName:@"btn_flip2.png"]} ]];
     
     NSInteger tag = 0;
     for(NSDictionary *obj in _menu){
