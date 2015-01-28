@@ -25,6 +25,7 @@ static NSString* const kCLTextToolFontIconName = @"fontIconAssetsName";
 static NSString* const kCLTextToolAlignLeftIconName = @"alignLeftIconAssetsName";
 static NSString* const kCLTextToolAlignCenterIconName = @"alignCenterIconAssetsName";
 static NSString* const kCLTextToolAlignRightIconName = @"alignRightIconAssetsName";
+static NSString* const kCLTextToolFontOverlayColor = @"fontOverlayColor";
 
 
 @interface _CLTextView : UIView
@@ -129,7 +130,7 @@ static NSString* const kCLTextToolAlignRightIconName = @"alignRightIconAssetsNam
     _settingView.top = _menuScroll.top - _settingView.height;
     _settingView.backgroundColor = [CLImageEditorTheme toolbarColor];
     _settingView.textColor = [CLImageEditorTheme toolbarTextColor];
-    _settingView.fontPickerForegroundColor = _settingView.backgroundColor;
+    _settingView.fontPickerForegroundColor = self.toolInfo.optionalInfo[kCLTextToolFontOverlayColor] ? self.toolInfo.optionalInfo[kCLTextToolFontOverlayColor] : _settingView.backgroundColor;
     _settingView.delegate = self;
     [self.editor.view addSubview:_settingView];
     
