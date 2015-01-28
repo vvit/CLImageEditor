@@ -10,6 +10,7 @@
 static NSString* const kCLBlurToolNormalIconName = @"nonrmalIconAssetsName";
 static NSString* const kCLBlurToolCircleIconName = @"circleIconAssetsName";
 static NSString* const kCLBlurToolBandIconName = @"bandIconAssetsName";
+static NSString* const kCLBlurToolHideNormalName = @"normalHide";
 
 typedef NS_ENUM(NSUInteger, CLBlurType)
 {
@@ -74,7 +75,8 @@ typedef NS_ENUM(NSUInteger, CLBlurType)
     return @{
              kCLBlurToolNormalIconName : @"",
              kCLBlurToolCircleIconName : @"",
-             kCLBlurToolBandIconName : @""
+             kCLBlurToolBandIconName : @"",
+             kCLBlurToolHideNormalName: @NO
              };
 }
 
@@ -108,6 +110,11 @@ typedef NS_ENUM(NSUInteger, CLBlurType)
                      }];
     
     [self setDefaultParams];
+    if ([self.toolInfo.optionalInfo[kCLBlurToolHideNormalName] boolValue]) {
+        _blurType = kCLBlurTypeCircle;
+        [_handlerView addSubview:_circleView];
+        [_circleView setNeedsDisplay];
+    }
     [self sliderDidChange:nil];
 }
 
@@ -166,6 +173,9 @@ typedef NS_ENUM(NSUInteger, CLBlurType)
         view.title = obj[@"title"];
         view.iconImage = obj[@"icon"];
         
+        if (view.tag == kCLBlurTypeNormal && [self.toolInfo.optionalInfo[kCLBlurToolHideNormalName] boolValue])
+            continue;
+
         if(self.selectedMenu==nil){
             self.selectedMenu = view;
         }
