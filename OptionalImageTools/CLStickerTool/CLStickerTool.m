@@ -144,7 +144,12 @@ static NSString* const kCLStickerToolStickerImageSize = @"stickerImageSize";
         UIImage *image = [UIImage imageWithContentsOfFile:filePath];
         if(image){
             CLToolbarMenuItem *view = [CLImageEditorTheme menuItemWithFrame:CGRectMake(x, 0, W, H) target:self action:@selector(tappedStickerPanel:) toolInfo:nil];
-            view.iconImage = [image aspectFit:CGSizeMake(imageSize, imageSize)];
+            dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^(void) {
+                UIImage *resizedImage = [image aspectFit:CGSizeMake(imageSize, imageSize)];
+                dispatch_async(dispatch_get_main_queue(), ^(void) {
+                    view.iconImage = resizedImage;
+                });
+            });
             view.userInfo = @{@"filePath" : filePath};
             
             [_menuScroll addSubview:view];
