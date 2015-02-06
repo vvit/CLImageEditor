@@ -9,10 +9,11 @@
 
 #import "CLCircleView.h"
 
-static NSString* const kCLStickerToolStickerPathKey = @"stickerPath";
+static NSString* const kCLStickerToolStickerSetInfoKey = @"stickerSetsInfo";
 static NSString* const kCLStickerToolDeleteIconName = @"deleteIconAssetsName";
 static NSString* const kCLStickerToolStickerWidthKey = @"stickerWidth";
 static NSString* const kCLStickerToolStickerImageSize = @"stickerImageSize";
+static NSString* const kCLStickerToolStickerSegmentImageNames = @"setSegmentImageNames";
 
 @interface _CLStickerView : UIView
 + (void)setActiveStickerView:(_CLStickerView*)view;
@@ -30,6 +31,8 @@ static NSString* const kCLStickerToolStickerImageSize = @"stickerImageSize";
     UIView *_workingView;
     
     UIScrollView *_menuScroll;
+    UIView *_menuFooter;
+    UISegmentedControl *_setControl;
 }
 
 + (NSArray*)subtools
@@ -62,7 +65,7 @@ static NSString* const kCLStickerToolStickerImageSize = @"stickerImageSize";
 + (NSDictionary*)optionalInfo
 {
     return @{
-             kCLStickerToolStickerPathKey:[self defaultStickerPath],
+             kCLStickerToolStickerSetInfoKey: @[@{@"bundlePath": [self defaultStickerPath]}],
              kCLStickerToolDeleteIconName:@"",
              kCLStickerToolStickerWidthKey: @70,
              kCLStickerToolStickerImageSize: @50
@@ -74,24 +77,42 @@ static NSString* const kCLStickerToolStickerImageSize = @"stickerImageSize";
 - (void)setup
 {
     _originalImage = self.editor.imageView.image;
-    
+
     [self.editor fixZoomScaleWithAnimated:YES];
-    
-    _menuScroll = [[UIScrollView alloc] initWithFrame:self.editor.menuView.frame];
-    _menuScroll.backgroundColor = self.editor.menuView.backgroundColor;
+
+    //the footer contains _menuScroll and _setControl
+    CGFloat setControlHeight = 37.f;
+    CGRect frame = CGRectOffset(self.editor.menuView.frame, 0.f, -setControlHeight);
+    frame.size.height += setControlHeight;
+    _menuFooter = [[UIView alloc] initWithFrame:frame];
+    [self.editor.view addSubview:_menuFooter];
+
+    _menuScroll = [[UIScrollView alloc] initWithFrame:CGRectMake(0.f,0.f,self.editor.menuView.frame.size.width,self.editor.menuView.frame.size.height)];
+    _menuScroll.backgroundColor = _menuFooter.backgroundColor = self.editor.menuView.backgroundColor;
     _menuScroll.showsHorizontalScrollIndicator = NO;
-    [self.editor.view addSubview:_menuScroll];
-    
+    [_menuFooter addSubview:_menuScroll];
+
+    //add a separator line
+    UIView *separator = [[UIView alloc] initWithFrame:CGRectMake(_menuScroll.frame.origin.x, _menuScroll.bottom, _menuScroll.frame.size.width, 1.f)];
+    separator.backgroundColor = [CLImageEditorTheme backgroundColor];
+    [_menuFooter addSubview:separator];
+
+    //add the set control below
+    NSArray *sets = self.toolInfo.optionalInfo[kCLStickerToolStickerSetInfoKey];
+    _setControl = [self createSegmentControlWithFrame:CGRectMake(_menuScroll.frame.origin.x, separator.bottom, 50*sets.count, setControlHeight) sets:sets];
+    [_menuFooter addSubview:_setControl];
+
+
     _workingView = [[UIView alloc] initWithFrame:[self.editor.view convertRect:self.editor.imageView.frame fromView:self.editor.imageView.superview]];
     _workingView.clipsToBounds = YES;
     [self.editor.view addSubview:_workingView];
     
-    [self setStickerMenu];
-    
-    _menuScroll.transform = CGAffineTransformMakeTranslation(0, self.editor.view.height-_menuScroll.top);
+    [self setStickerMenuWithSetIndex:0];
+
+    _menuFooter.transform = CGAffineTransformMakeTranslation(0, self.editor.view.height-_menuFooter.top);
     [UIView animateWithDuration:kCLImageToolAnimationDuration
                      animations:^{
-                         _menuScroll.transform = CGAffineTransformIdentity;
+                         _menuFooter.transform = CGAffineTransformIdentity;
                      }];
 }
 
@@ -103,10 +124,10 @@ static NSString* const kCLStickerToolStickerImageSize = @"stickerImageSize";
     
     [UIView animateWithDuration:kCLImageToolAnimationDuration
                      animations:^{
-                         _menuScroll.transform = CGAffineTransformMakeTranslation(0, self.editor.view.height-_menuScroll.top);
+                         _menuFooter.transform = CGAffineTransformMakeTranslation(0, self.editor.view.height-_menuFooter.top);
                      }
                      completion:^(BOOL finished) {
-                         [_menuScroll removeFromSuperview];
+                         [_menuFooter removeFromSuperview];
                      }];
 }
 
@@ -123,22 +144,76 @@ static NSString* const kCLStickerToolStickerImageSize = @"stickerImageSize";
     });
 }
 
+#pragma mark - Sets
+
+- (UISegmentedControl*)createSegmentControlWithFrame:(CGRect)frame sets:(NSArray*)sets
+{
+    if (_setControl)
+        return _setControl;
+
+    //load sets
+    NSMutableArray *items = [[NSMutableArray alloc] initWithCapacity:sets.count];
+    for (NSDictionary *set in sets) {
+        if (set[@"setIcon"])
+            [items addObject:[[UIImage imageNamed:set[@"setIcon"]] imageWithRenderingMode:UIImageRenderingModeAlwaysOriginal]];
+        else
+            [items addObject:[NSString stringWithFormat:@"Set%ld", [sets indexOfObject:set]]];
+    }
+
+    UISegmentedControl *setControl = [[UISegmentedControl alloc] initWithItems:items];
+    setControl.frame = frame;
+    setControl.selectedSegmentIndex = 0;
+    if (self.toolInfo.optionalInfo[kCLStickerToolStickerSegmentImageNames])
+    {
+        UIImage *bg = [UIImage imageNamed:self.toolInfo.optionalInfo[kCLStickerToolStickerSegmentImageNames][@"bg"]];
+        UIImage *bgSelected = [UIImage imageNamed:self.toolInfo.optionalInfo[kCLStickerToolStickerSegmentImageNames][@"bg-selected"]];
+        UIImage *div = [UIImage imageNamed:self.toolInfo.optionalInfo[kCLStickerToolStickerSegmentImageNames][@"divider"]];
+        UIImage *divSelected = [UIImage imageNamed:self.toolInfo.optionalInfo[kCLStickerToolStickerSegmentImageNames][@"divider-selected"]];
+        [setControl setBackgroundImage:bg forState:UIControlStateNormal barMetrics:UIBarMetricsDefault];
+        [setControl setBackgroundImage:bgSelected forState:UIControlStateSelected barMetrics:UIBarMetricsDefault];
+        [setControl setDividerImage:div forLeftSegmentState:UIControlStateNormal rightSegmentState:UIControlStateNormal barMetrics:UIBarMetricsDefault];
+        [setControl setDividerImage:divSelected forLeftSegmentState:UIControlStateSelected rightSegmentState:UIControlStateNormal barMetrics:UIBarMetricsDefault];
+        [setControl setDividerImage:divSelected forLeftSegmentState:UIControlStateNormal rightSegmentState:UIControlStateSelected barMetrics:UIBarMetricsDefault];
+        [setControl setDividerImage:divSelected forLeftSegmentState:UIControlStateNormal rightSegmentState:UIControlStateHighlighted barMetrics:UIBarMetricsDefault];
+        [setControl setDividerImage:divSelected forLeftSegmentState:UIControlStateSelected rightSegmentState:UIControlStateHighlighted barMetrics:UIBarMetricsDefault];
+        [setControl setDividerImage:divSelected forLeftSegmentState:UIControlStateHighlighted rightSegmentState:UIControlStateNormal barMetrics:UIBarMetricsDefault];
+        [setControl setDividerImage:divSelected forLeftSegmentState:UIControlStateHighlighted rightSegmentState:UIControlStateSelected barMetrics:UIBarMetricsDefault];
+        [setControl addTarget:self action:@selector(setChanged:) forControlEvents:UIControlEventValueChanged];
+    }
+    return setControl;
+}
+
+- (void)setChanged:(id)sender
+{
+    //load necessary set
+    UISegmentedControl *segmentedControl = (UISegmentedControl*)sender;
+    [self setStickerMenuWithSetIndex:segmentedControl.selectedSegmentIndex];
+    //scroll to the beginning
+    [_menuScroll setContentOffset:CGPointMake(-_menuScroll.contentInset.left, 0) animated:NO];
+}
+
 #pragma mark-
 
-- (void)setStickerMenu
+- (void)setStickerMenuWithSetIndex:(NSInteger)setIndex
 {
     CGFloat W = [self.toolInfo.optionalInfo[kCLStickerToolStickerWidthKey] floatValue];
     CGFloat H = _menuScroll.height;
     CGFloat x = 0, imageSize = [self.toolInfo.optionalInfo[kCLStickerToolStickerImageSize] floatValue];
-    
-    NSString *stickerPath = self.toolInfo.optionalInfo[kCLStickerToolStickerPathKey];
+
+    NSArray *sets = self.toolInfo.optionalInfo[kCLStickerToolStickerSetInfoKey];
+    NSAssert(setIndex < sets.count, @"Index is out of bounds!");
+
+    NSString *stickerPath = sets[setIndex][@"bundlePath"];
     if(stickerPath==nil){ stickerPath = [[self class] defaultStickerPath]; }
     
     NSFileManager *fileManager = [NSFileManager defaultManager];
     
     NSError *error = nil;
     NSArray *list = [fileManager contentsOfDirectoryAtPath:stickerPath error:&error];
-    
+
+    //remove all subviews
+    [_menuScroll.subviews makeObjectsPerformSelector:@selector(removeFromSuperview)];
+
     for(NSString *path in list){
         NSString *filePath = [NSString stringWithFormat:@"%@/%@", stickerPath, path];
         UIImage *image = [UIImage imageWithContentsOfFile:filePath];
@@ -201,6 +276,7 @@ static NSString* const kCLStickerToolStickerImageSize = @"stickerImageSize";
 
 @end
 
+#pragma mark -
 
 @implementation _CLStickerView
 {
